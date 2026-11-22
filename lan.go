@@ -16,7 +16,8 @@ import (
 )
 
 type config struct {
-	LAN bool `json:"lan"`
+	LAN   bool   `json:"lan"`
+	SCDir string `json:"scDir,omitempty"`
 }
 
 func cfgPath() string { return filepath.Join(os.Getenv("APPDATA"), "SCTelemetryLocal", "config.json") }
@@ -90,7 +91,9 @@ func (a *app) lanHandlers(mux *http.ServeMux) {
 			} else {
 				a.stopLAN()
 			}
-			saveCfg(config{LAN: on})
+			c := loadCfg()
+			c.LAN = on
+			saveCfg(c)
 		}
 		a.lanMu.Lock()
 		defer a.lanMu.Unlock()
@@ -119,3 +122,4 @@ func (a *app) lanHandlers(mux *http.ServeMux) {
 		w.Write(png)
 	})
 }
+

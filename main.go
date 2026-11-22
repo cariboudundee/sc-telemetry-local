@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var version = "0.3.0"
+var version = "0.3.1"
 
 func main() {
 	once := flag.Bool("once", false, "affiche une trame et l'état du Game.log, puis quitte (test)")
@@ -19,6 +19,9 @@ func main() {
 	flag.Parse()
 
 	in := findInstall(*scDir)
+	if in == nil && *scDir == "" {
+		in = askInstall()
+	}
 	if in == nil {
 		fmt.Println("Star Citizen introuvable. Indique le dossier de la branche avec -sc.")
 		pause()
@@ -82,5 +85,7 @@ func pause() {
 	fmt.Print("Appuie sur Entrée pour fermer…")
 	fmt.Scanln()
 }
+
+
 
 
