@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var version = "0.3.5"
+var version = "0.3.6"
 
 func main() {
 	once := flag.Bool("once", false, "affiche une trame et l'état du Game.log, puis quitte (test)")
@@ -43,6 +43,10 @@ func main() {
 	gi := newGameInfo()
 	go followGameLog(in.GameLog, gi, nil)
 	go tel.run(func() int { return readPort(in.Dir) })
+	if *scDir == "" || os.Getenv("SCTL_FOLLOW") != "" {
+		os.Setenv("SCTL_FOLLOW", "1")
+		go watchBranch(in)
+	}
 
 	if *once {
 		deadline := time.Now().Add(6 * time.Second)
@@ -68,6 +72,7 @@ func main() {
 	}
 	a := &app{in: in, tel: tel, gi: gi}
 	a.port, a.lanOn = *port, *lan || loadCfg().LAN
+	a.vkbOn = loadCfg().VKB
 	url := fmt.Sprintf("http://localhost:%d", *port)
 	fmt.Println("Tableau de bord :", url)
 	fmt.Println("Ferme cette fenêtre pour arrêter.")

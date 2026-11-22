@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -47,6 +48,7 @@ type app struct {
 	tel *Telemetry
 	gi  *GameInfo
 	lanState
+	vkbState
 }
 
 func (a *app) serve(addr string) error {
@@ -99,12 +101,21 @@ func (a *app) serve(addr string) error {
 	})
 	a.lanHandlers(mux)
 	a.firewallHandler(mux)
+	a.vkbHandler(mux)
+	go a.runVKB()
 	a.mux = mux
 	if a.lanOn {
 		a.lanOn = false
 		a.startLAN()
 	}
-	return http.ListenAndServe(addr, mux)
+	var err error
+	for i := 0; i < 20; i++ { // après un redémarrage, l'ancienne instance libère le port
+		if err = http.ListenAndServe(addr, mux); !strings.Contains(fmt.Sprint(err), "bind") {
+			return err
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return err
 }
 
 // lanAddresses : adresses IPv4 privées du PC, pour l'accès depuis un téléphone.

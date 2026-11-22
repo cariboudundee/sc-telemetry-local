@@ -25,6 +25,16 @@ Tableau de bord **100 % local et en lecture seule** pour Star Citizen, sur ton P
 
 Options : `-port 8742`, `-lan` (accès réseau local), `-nobrowser`, `-sc "D:\…\StarCitizen\LIVE"` (si l'installation n'est pas trouvée), `-once` (test en console).
 
+## LED VKB (optionnel)
+
+Désactivé par défaut. Bouton « 💡 VKB » dans la page (sur le PC uniquement). L'outil envoie aux LED des
+contrôleurs VKB le même rapport HID que VKBDevCfg (rien n'est enregistré dans l'appareil ; débrancher/rebrancher
+rend les LED d'origine) :
+
+- Gladiator EVO : barre de la poignée = mode (vert SCM, bleu NAV, rouge touché, rouge rapide missile), LED bleue = découplé ; le point du ministick n'est pas touché.
+- S-TECS : grande barre = boucliers (vert / orange / rouge), DNT = train, LOCK = voyant quantum, ON = centrale.
+
+L'outil suit aussi la branche lancée (LIVE, PTU…) et se relance de lui-même si elle change.
 ## Compiler
 
 Go 1.22 ou plus récent, sous Windows :
@@ -48,3 +58,6 @@ A **100% local, read-only** dashboard for Star Citizen, on your PC or phone. It 
 Download the `.zip` from [Releases](../../releases), run `SCTelemetryLocal.exe` (unsigned: SmartScreen > "More info" > "Run anyway"), follow the "Setup" panel.
 
 Personal project, not affiliated with Cloud Imperium Games. Star Citizen® is a trademark of Cloud Imperium Rights LLC. License: MIT.
+
+VKB LEDs (optional, off by default, "💡 VKB" button): Gladiator grip bar = master mode / hit / missile, blue LED = decoupled;
+S-TECS bars = shields, gear, quantum, ON = power plant. Nothing is stored in the device; unplug/replug to restore its LEDs.

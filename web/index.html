@@ -35,13 +35,13 @@ ul.notes{list-style:none;padding:0;margin:8px 0 0;font-size:13px;color:var(--dim
 .steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.steps span{font-size:13px;color:var(--dim)}.steps .ok{color:var(--ok)}.steps .cur{color:var(--acc);font-weight:700}
 .act{background:#0a1016;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:10px 12px}.act p{margin:0 0 6px}
 .act button{background:var(--acc);color:#001018;border:0;border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer}.act code{color:var(--acc)}
-#phone{display:none;position:fixed;top:52px;right:16px;z-index:3;width:300px;background:var(--panel);border:1px solid #2b4a63;border-radius:10px;padding:14px;box-shadow:0 8px 30px #000a}
-#phone.open{display:block}#phone p{margin:0 0 8px;font-size:13px;color:var(--dim)}#phone img{display:block;margin:10px auto;background:#fff;padding:6px;border-radius:6px}
+#phone,#vkbp{display:none;position:fixed;top:52px;right:16px;z-index:3;width:300px;background:var(--panel);border:1px solid #2b4a63;border-radius:10px;padding:14px;box-shadow:0 8px 30px #000a}
+#phone.open,#vkbp.open{display:block}#vkbp p{margin:0 0 8px;font-size:13px;color:var(--dim)}#phone p{margin:0 0 8px;font-size:13px;color:var(--dim)}#phone img{display:block;margin:10px auto;background:#fff;padding:6px;border-radius:6px}
 #phone .url{text-align:center;font-weight:700;color:var(--acc);word-break:break-all}.sw{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer}.sw input{width:18px;height:18px}
 footer{color:var(--dim);font-size:12px;text-align:center;padding:0 16px 20px}
 @media (max-width:420px){main{padding:10px}header h1{font-size:14px}}
 </style></head><body>
-<header><span class="dot" id="dot"></span><h1>SC Telemetry Local</h1><span id="status"></span><span class="sp"></span><button class="lang" id="phoneBtn" hidden></button><button class="lang" id="lang">EN</button></header><div id="phone"></div>
+<header><span class="dot" id="dot"></span><h1>SC Telemetry Local</h1><span id="status"></span><span class="sp"></span><button class="lang" id="vkbBtn" hidden></button><button class="lang" id="phoneBtn" hidden></button><button class="lang" id="lang">EN</button></header><div id="phone"></div><div id="vkbp"></div>
 <main><section id="setup"><h2><span data-t="setup"></span><b id="setupSum"></b></h2><div class="steps" id="steps"></div><div class="act" id="act"></div></section>
 <section id="ship"><h2><span data-t="ship"></span><b id="shipName"></b></h2><div id="shipBody"></div></section>
 <section id="flight"><h2><span data-t="flight"></span></h2><div id="flightBody"></div></section>
@@ -147,6 +147,12 @@ function renderPhone(){const t=PT[L],b=$("phoneBtn");b.hidden=!isLocal;b.textCon
   (LN.on?(u?`<p>${esc(t.help)}</p><img src="/qr?u=${encodeURIComponent(u)}" width="220" height="220" alt=""><div class="url">${(LN.urls||[]).map(esc).join("<br>")}</div><p style="margin-top:8px">${esc(t.fw)}</p><p><button class="lang" id="fwBtn">${esc(t.fwBtn)}</button> <span id="fwMsg"></span></p>`:`<p>${esc(t.none)} ${esc(LN.err||"")}</p>`):`<p>${esc(t.off)}</p>`);
  $("lanSw").onchange=e=>lanCall(e.target.checked);const fb=$("fwBtn");if(fb)fb.onclick=async()=>{fb.disabled=true;$("fwMsg").textContent="…";let ok=false;try{ok=(await fetch("/firewall",{method:"POST",headers:{"X-SCTL":"1"}})).ok}catch(e){}$("fwMsg").textContent=ok?t.fwOk:t.fwKo;fb.disabled=false}}
 $("phoneBtn").onclick=()=>{$("phone").classList.toggle("open");lanCall()};
+const VT={fr:{btn:"💡 VKB",sw:"Témoins sur les LED VKB",none:"Aucun Gladiator ou S-TECS détecté.",found:"Détecté : ",map:"Gladiator : barre = mode (vert SCM, bleu NAV, rouge touché / missile) · LED bleue = découplé. Le point du ministick n\u2019est pas touché.<br>S-TECS : grande barre = boucliers · DNT = train · LOCK = quantum · ON = centrale.",restore:"Les LED reprennent leur fonction d\u2019origine quand tu débranches et rebranches l\u2019appareil."},en:{btn:"💡 VKB",sw:"Indicators on VKB LEDs",none:"No Gladiator or S-TECS found.",found:"Found: ",map:"Gladiator: bar = mode (green SCM, blue NAV, red hit / missile) · blue LED = decoupled. The ministick dot is left alone.<br>S-TECS: big bar = shields · DNT = gear · LOCK = quantum · ON = power plant.",restore:"LEDs go back to their original function when you unplug and replug the device."}};let VK=null;
+async function vkbCall(on){try{VK=await (await fetch(on==null?"/vkb":"/vkb?on="+(on?1:0),on==null?{}:{method:"POST",headers:{"X-SCTL":"1"}})).json()}catch(e){}renderVkb()}
+function renderVkb(){const t=VT[L],b=$("vkbBtn");b.hidden=!isLocal;b.textContent=t.btn;if(!isLocal||!VK)return;const d=VK.devices||[];
+$("vkbp").innerHTML=`<label class="sw"><input type="checkbox" id="vkbSw" ${VK.on?"checked":""}>${esc(t.sw)}</label><p>${d.length?esc(t.found+d.join(", ")):esc(t.none)}</p><p>${t.map}</p><p>${esc(t.restore)}</p>`+(VK.err?`<p style="color:var(--bad)">${esc(VK.err)}</p>`:"");$("vkbSw").onchange=e=>vkbCall(e.target.checked)}
+$("vkbBtn").onclick=()=>{$("vkbp").classList.toggle("open");$("phone").classList.remove("open");vkbCall()};
+if(isLocal)vkbCall();const _r3=render;render=function(){_r3();renderVkb()};
 if(isLocal)lanCall();const _r2=render;render=function(){_r2();renderPhone()};render();connect();
 </script></body></html>
 
