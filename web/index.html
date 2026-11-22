@@ -9,27 +9,27 @@ header h1{font-size:16px;margin:0;letter-spacing:.08em;text-transform:uppercase;
 .dot{width:10px;height:10px;border-radius:50%;background:var(--bad)}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 #status{color:var(--dim);font-size:13px}.sp{flex:1}
 button.lang{background:none;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:3px 10px;cursor:pointer}
-main{display:grid;gap:12px;padding:12px 16px 24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));max-width:1500px;margin:0 auto}
+main{display:grid;gap:12px;align-items:start;padding:12px 16px 24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));max-width:1500px;margin:0 auto}
 section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
 section h2{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
 section h2 b{color:var(--text);letter-spacing:.04em;text-transform:none;font-size:13px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.big{font-size:22px;font-weight:700;margin-bottom:6px;overflow-wrap:anywhere}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.chip{border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--dim)}
+.big{font-size:22px;font-weight:700;margin-bottom:6px;overflow-wrap:anywhere;line-height:1.3;height:2.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:6px;margin:6px 0}
+.chip{border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--dim);height:24px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip.on{color:var(--ok);border-color:#1f5a3a}.chip.off{color:var(--bad);border-color:#5a1f1f}.chip.mid{color:var(--warn);border-color:#5a441f}
 .ann{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
 .ann div{text-align:center;padding:6px 0;border-radius:6px;font-size:12px;font-weight:700;background:#0a1016;color:var(--off);border:1px solid var(--line)}
 .ann .nom{color:#5fb98a}.ann .minor{color:#000;background:var(--warn)}.ann .major{color:#fff;background:var(--bad)}.ann .blink{animation:bl .9s steps(2) infinite}
 @keyframes bl{50%{opacity:.25}}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}.kv dt{color:var(--dim)}.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}.kv dt{color:var(--dim)}.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px}
 .num{background:#0a1016;border:1px solid var(--line);border-radius:8px;padding:8px}.num span{display:block;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
-.num b{font-size:20px;font-variant-numeric:tabular-nums}
+.num b{font-size:20px;font-variant-numeric:tabular-nums;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar{margin:7px 0}.bar label{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}.bar label b{color:var(--text);font-variant-numeric:tabular-nums}
 .bar i{display:block;height:7px;background:#0a1016;border-radius:4px;overflow:hidden;margin-top:3px;border:1px solid var(--line)}.bar i u{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
 .bar.low i u{background:var(--warn)}.bar.crit i u{background:var(--bad)}
 .empty{color:var(--dim);font-style:italic;padding:14px 0}
-ul.notes{list-style:none;padding:0;margin:8px 0 0;font-size:13px;color:var(--dim)}ul.notes li{padding:3px 0;border-top:1px solid var(--line)}
+ul.notes{list-style:none;padding:0;margin:8px 0 0;font-size:13px;color:var(--dim)}ul.notes li{padding:3px 0;border-top:1px solid var(--line);height:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #setup{grid-column:1/-1;border-color:#2b4a63}#setup.done{padding:8px 14px}#setup.done .steps,#setup.done .act{display:none}
 .steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.steps span{font-size:13px;color:var(--dim)}.steps .ok{color:var(--ok)}.steps .cur{color:var(--acc);font-weight:700}
 .act{background:#0a1016;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:10px 12px}.act p{margin:0 0 6px}
@@ -92,7 +92,7 @@ function render(){const t=T[L];document.querySelectorAll("[data-t]").forEach(e=>
   const ws=w.weapons||[],ready=ws.filter(x=>x.ready_to_fire).length,cms=(w.countermeasures||[]);
   const cm=cms.map(c=>[/DECOY/.test(c.type)?t.decoy:t.noise,num(c.amount||c.count||0)]);
   $("shipBody").innerHTML=`<div class="chips">${st.map(([k,x])=>`<span class="chip on">${esc(k)} : ${esc(x)}</span>`).join("")}</div><div class="chips">${chips}</div><div class="ann">${A}</div>`+
-   kv([ws.length?[t.wpn,ready+" / "+ws.length]:null,...cm]);
+   kv([[t.wpn,ws.length?ready+" / "+ws.length:"—"],[t.decoy,num(((cms.find(c=>/DECOY/.test(c.type))||{}).amount)||0)],[t.noise,num(((cms.find(c=>/NOISE/.test(c.type))||{}).amount)||0)]]);
   const ins=g(v,"flight.instruments")||{};
   $("flightBody").innerHTML=`<div class="nums">${box(t.speed,num(ins.speed||0)+" m/s")}${box(t.ralt,dist(ins.radar_altitude))}${box(t.alt,dist(ins.altitude))}${box(t.hdg,num(ins.heading||0)+"°")}${box(t.vs,num(ins.vertical_speed_indicator||0,1)+" m/s")}</div>`+
    bar(t.h2,frac(ins.hydrogen_fuel))+bar(t.qt,frac(ins.quantum_fuel))+bar(t.boost,frac(g(ins,"boost.reserves")))+bar(t.shields,frac(g(v,"shields.level")))+bar(t.hull,frac(v.health))}
@@ -105,8 +105,8 @@ function render(){const t=T[L];document.querySelectorAll("[data-t]").forEach(e=>
  // mission
  const ms=G.missions||{},cur=G.current&&ms[G.current];$("juris").textContent=G.jurisdiction||"";
  $("missionBody").innerHTML=`<div class="big">${esc(cur&&cur.objective||(cur?cur.name:t.none))}</div>`+
-  kv([cur&&cur.name?[t.contract,cur.name]:null,[t.monitored,G.monitored==null?"—":G.monitored?t.yes:t.no],[t.shard,G.shard||"—"],[t.server,G.server||"—"],[t.handle,G.handle||"—"],[t.version,(G.branch||"—")+(G.build?" · "+G.build:"")]])+
-  `<ul class="notes">${(G.lastNotifications||[]).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`}
+  kv([[t.contract,cur&&cur.name||"—"],[t.monitored,G.monitored==null?"—":G.monitored?t.yes:t.no],[t.shard,G.shard||"—"],[t.server,G.server||"—"],[t.handle,G.handle||"—"],[t.version,(G.branch||"—")+(G.build?" · "+G.build:"")]])+
+  `<ul class="notes">${[0,1,2,3,4].map(i=>`<li title="${esc((G.lastNotifications||[])[i]||"")}">${esc((G.lastNotifications||[])[i]||" ")}</li>`).join("")}</ul>`}
 $("lang").onclick=()=>{L=L==="fr"?"en":"fr";try{localStorage.setItem("sctl-lang",L)}catch(e){}render()};
 function connect(){const es=new EventSource("/events");es.onmessage=e=>{try{S=JSON.parse(e.data);render()}catch(x){}};es.onerror=()=>{S=null;render()}}
 const ST={fr:{setup:"Mise en route",ready:"Tout est prêt ✓",s:["Star Citizen trouvé","Télémétrie autorisée","Jeu lancé","Télémétrie active","En jeu"],
@@ -141,6 +141,7 @@ function renderPhone(){const t=PT[L],b=$("phoneBtn");b.hidden=!isLocal;b.textCon
 $("phoneBtn").onclick=()=>{$("phone").classList.toggle("open");lanCall()};
 if(isLocal)lanCall();const _r2=render;render=function(){_r2();renderPhone()};render();connect();
 </script></body></html>
+
 
 
 
