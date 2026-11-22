@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var version = "0.3.1"
+var version = "0.3.2"
 
 func main() {
 	once := flag.Bool("once", false, "affiche une trame et l'état du Game.log, puis quitte (test)")
@@ -85,6 +85,7 @@ func pause() {
 	fmt.Print("Appuie sur Entrée pour fermer…")
 	fmt.Scanln()
 }
+
 
 
 

@@ -50,9 +50,7 @@ func followGameLog(path string, g *GameInfo, onReset func()) {
 		}
 		if st.Size() < off {
 			off, pending = 0, ""
-			g.mu.Lock()
-			*g = GameInfo{Missions: map[string]*Mission{}, LastNotif: []string{}}
-			g.mu.Unlock()
+			g.reset() // nouvelle session du jeu : Game.log recréé
 			if onReset != nil {
 				onReset()
 			}
@@ -86,3 +84,14 @@ func followGameLog(path string, g *GameInfo, onReset func()) {
 	}
 }
 
+
+// reset remet les infos à zéro champ par champ, sans recopier le verrou (le recopier pendant qu'il est pris
+// faisait planter l'outil au lancement du jeu : « sync: unlock of unlocked mutex »).
+func (g *GameInfo) reset() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.Handle, g.Shard, g.Server, g.Branch, g.Build = "", "", "", "", ""
+	g.Jurisdiction, g.Monitored, g.Current, g.LastResult = "", nil, "", ""
+	g.Missions = map[string]*Mission{}
+	g.LastNotif = []string{}
+}
