@@ -40,8 +40,8 @@ L'outil suit aussi la branche lancée (LIVE, PTU…) et se relance de lui-même 
 Désactivé par défaut. L'outil se présente à VPC Link Tool comme le script DCS de Virpil : JSON en UDP sur
 127.0.0.1:4123, 10 fois par seconde. Table de conversion : clés DCS habituelles (`aircraftType`, `mech_Gear_Status`,
 `mech_Gear_Value`, `mcp_MasterWarning`, `mcp_AutopilotOn`, `plane_flare`, `plane_chaff`, `plane_RadarAltimeter`…)
-et clés propres à Star Citizen (`sc_gear`, `sc_shields`, `sc_decoupled`, `sc_hit`, `sc_missile`, `sc_nav`, `sc_ann_*`,
-`sc_power_*`…). Les LED se règlent ensuite dans VPC Link Tool.
+et tous les champs de la télémétrie sous leur nom d'origine (`lights_enabled`, `flight.state.gear`,
+`power.shield_generators`, `annunciators.hit`…), booléens en 0/1, énumérations en nombres. Les LED se règlent ensuite dans VPC Link Tool.
 ## Compiler
 
 Go 1.22 ou plus récent, sous Windows :
@@ -66,6 +66,6 @@ Download the `.zip` from [Releases](../../releases), run `SCTelemetryLocal.exe` 
 
 Personal project, not affiliated with Cloud Imperium Games. Star Citizen® is a trademark of Cloud Imperium Rights LLC. License: MIT.
 
-Virpil: optional bridge to VPC Link Tool (pretends to be the DCS script, JSON over UDP 127.0.0.1:4123, sc_* and DCS keys).
+Virpil: optional bridge to VPC Link Tool (pretends to be the DCS script, JSON over UDP 127.0.0.1:4123, original telemetry field names and DCS keys).
 VKB LEDs (optional, off by default, "💡 LED" button): Gladiator grip bar = master mode / hit / missile, blue LED = decoupled;
 S-TECS bars = shields, gear, quantum, ON = power plant. Nothing is stored in the device; unplug/replug to restore its LEDs.

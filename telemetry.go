@@ -98,3 +98,15 @@ func (t *Telemetry) JSON() []byte {
 	b, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(t.latest)
 	return b
 }
+
+// JSONFull : dernière trame avec tous les champs (y compris à zéro / faux), énumérations en nombres
+// (enums=true) ou en noms. Sert au pont Virpil, qui doit voir passer les valeurs qui retombent à 0.
+func (t *Telemetry) JSONFull(enums bool) []byte {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	if t.latest == nil {
+		return nil
+	}
+	b, _ := protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true, UseEnumNumbers: enums}.Marshal(t.latest)
+	return b
+}

@@ -2,12 +2,14 @@ package main
 
 // Pont vers VPC Link Tool (Virpil) : l'outil se fait passer pour le script DCS de Virpil et envoie
 // l'état du vaisseau en JSON, en UDP sur 127.0.0.1:4123, 10 fois par seconde. Les LED se règlent
-// ensuite dans VPC Link Tool comme pour DCS. Clés DCS standard (table de conversion) + clés sc_*.
+// ensuite dans VPC Link Tool comme pour DCS. Champs de la télémétrie sous leur nom d'origine + clés DCS standard.
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,24 +33,72 @@ func b01(b bool) int {
 
 func num(v any) float64 { f, _ := v.(float64); return f }
 
-// vpcData : table de conversion Star Citizen → clés du script DCS de Virpil, plus clés sc_*.
-func vpcData(frame map[string]any) map[string]any {
+// flatten : champs de la télémétrie sous leur nom d'origine (chemin à points, sans le préfixe
+// « vehicle.state. »), booléens en 0/1, nombres tels quels, énumérations en nombres.
+func flatten(prefix string, v any, out map[string]any) {
+	switch x := v.(type) {
+	case map[string]any:
+		for k, e := range x {
+			flatten(prefix+k+".", e, out)
+		}
+	case []any:
+		for i, e := range x {
+			flatten(fmt.Sprintf("%s%d.", prefix, i), e, out)
+		}
+	case nil:
+	default:
+		k := strings.TrimPrefix(strings.TrimSuffix(prefix, "."), "vehicle.state.")
+		switch y := x.(type) {
+		case bool:
+			out[k] = b01(y)
+		case string:
+			if f, err := strconv.ParseFloat(y, 64); err == nil {
+				out[k] = f
+			} else {
+				out[k] = y
+			}
+		default:
+			out[k] = x
+		}
+	}
+}
+
+// vpcData : valeurs envoyées à VPC Link Tool. full = trame complète (énumérations en nombres),
+// frame = trame habituelle (pour les clés DCS). known = clés déjà vues, renvoyées à 0 si elles disparaissent.
+func vpcData(full, frame map[string]any, known map[string]bool) map[string]any {
+	d := map[string]any{}
+	flatten("", full, d)
+	for k := range known {
+		if _, ok := d[k]; !ok {
+			d[k] = 0
+		}
+	}
+	for k, x := range d {
+		if _, isStr := x.(string); !isStr && known != nil {
+			known[k] = true
+		}
+	}
+	for k, x := range dcsKeys(frame) {
+		d[k] = x
+	}
+	return d
+}
+
+// dcsKeys : table de conversion Star Citizen → clés du script DCS de Virpil.
+func dcsKeys(frame map[string]any) map[string]any {
 	d := map[string]any{}
 	v, _ := get(frame, "vehicle.state").(map[string]any)
-	seated := v != nil && str(get(frame, "actor.state.locomotion")) == "ACTOR_LOCOMOTION_STATE_SEATED"
-	d["sc_seated"] = b01(seated)
-	if !seated {
+	if v == nil || str(get(frame, "actor.state.locomotion")) != "ACTOR_LOCOMOTION_STATE_SEATED" {
 		d["export_allowed"] = 0
 		return d
 	}
+	d["export_allowed"] = 1
 	name := str(v["class_name"])
 	if name == "" {
 		name = str(v["name"])
 	}
 	d["aircraftType"] = name
 	ins, _ := get(v, "flight.instruments").(map[string]any)
-
-	// train : 0 rentré, 1 sorti, 0.5 en mouvement (comme LoGetMechInfo().gear de DCS)
 	g := str(get(v, "flight.state.gear"))
 	gs, gv := 0, 0
 	switch {
@@ -58,51 +108,16 @@ func vpcData(frame map[string]any) map[string]any {
 		gs, gv = 1, 50
 	}
 	d["mech_Gear_Status"], d["mech_Gear_Value"] = gs, gv
-	d["sc_gear"] = gv
-
-	an := func(k string) string { return str(get(v, "annunciators."+k)) }
-	level := func(s string) int { // 0 éteint, 1 normal, 2 attention, 3 alerte
-		switch {
-		case s == "" || strings.HasSuffix(s, "_OFF"):
-			return 0
-		case strings.Contains(s, "MAJOR"):
-			return 3
-		case strings.Contains(s, "MINOR"):
-			return 2
-		}
-		return 1
-	}
 	master := 0
-	for _, k := range []string{"pwr", "wpn", "thr", "shld", "cool", "qdrv", "radr", "prox", "hit", "misl"} {
-		l := level(an(k))
-		d["sc_ann_"+k] = l
-		if l == 3 {
-			master = 1
+	if an, ok := v["annunciators"].(map[string]any); ok {
+		for _, s := range an {
+			if strings.Contains(str(s), "MAJOR") {
+				master = 1
+			}
 		}
 	}
 	d["mcp_MasterWarning"] = master
-	d["sc_hit"] = b01(level(an("hit")) >= 2)
-	d["sc_missile"] = b01(level(an("misl")) == 3)
-
-	sh := b01(isTrue(get(v, "power.shield_generators"))) + b01(isTrue(get(v, "power.shield_emitters")))
-	d["sc_shields"] = sh // 0 off, 1 partiel, 2 OK
-	for _, k := range []string{"powerplants", "engines", "weapons", "coolers", "life_support", "sensors", "gravity_generators"} {
-		d["sc_power_"+k] = b01(isTrue(get(v, "power."+k)))
-	}
-	set, _ := get(v, "flight.settings").(map[string]any)
-	d["sc_decoupled"] = b01(set != nil && !isTrue(get(set, "ifcs_coupled.enabled")))
-	for _, k := range []string{"ifcs_esp", "ifcs_g_safe", "ifcs_cruise_mode", "ifcs_speed_limiter", "ifcs_proximity_assist"} {
-		d["sc_"+strings.TrimPrefix(k, "ifcs_")] = b01(isTrue(get(set, k+".active")))
-	}
-	d["mcp_AutopilotOn"] = b01(isTrue(get(set, "ifcs_cruise_mode.active")))
-	d["sc_lights"] = b01(isTrue(v["lights_enabled"]))
-	d["sc_vtol"] = b01(strings.HasSuffix(str(get(v, "flight.state.vtol")), "_DEPLOYED"))
-	mm := str(get(v, "master_mode.mode"))
-	d["sc_nav"] = b01(strings.Contains(mm, "NAV"))
-	d["sc_scm"] = b01(strings.Contains(mm, "SCM"))
-	d["sc_gimbals_locked"] = b01(isTrue(get(frame, "weapons.settings.gimbals_locked")))
-
-	// instruments (mêmes noms que le script DCS)
+	d["mcp_AutopilotOn"] = b01(isTrue(get(v, "flight.settings.ifcs_cruise_mode.active")))
 	d["plane_IndicatedAirSpeed"] = int(num(ins["speed"]))
 	d["plane_TrueAirSpeed"] = int(num(ins["speed"]))
 	d["plane_AltitudeAboveSeaLevel"] = int(num(ins["altitude"]))
@@ -110,27 +125,42 @@ func vpcData(frame map[string]any) map[string]any {
 	d["plane_AltitudeAboveGroundLevel"] = int(num(ins["radar_altitude"]))
 	d["plane_VerticalVelocity"] = int(num(ins["vertical_speed_indicator"]))
 	d["plane_CurrentCourse"] = int(num(ins["heading"]))
-	d["sc_hydrogen"] = int(num(ins["hydrogen_fuel"]) * 100)
-	d["sc_quantum_fuel"] = int(num(ins["quantum_fuel"]) * 100)
-	d["sc_health"] = int(num(v["health"]) * 100)
-	d["sc_shield_level"] = int(num(get(v, "shields.level")) * 100)
-
-	// contre-mesures : leurres = flare, bruit = chaff
+	d["plane_flare"], d["plane_chaff"] = 0, 0
 	if cms, ok := get(frame, "weapons.countermeasures").([]any); ok {
 		for _, c := range cms {
-			t, n := str(get(c, "type")), int(num(get(c, "amount")))
-			if strings.Contains(t, "DECOY") {
-				d["plane_flare"] = n
+			if strings.Contains(str(get(c, "type")), "DECOY") {
+				d["plane_flare"] = int(num(get(c, "amount")))
 			} else {
-				d["plane_chaff"] = n
+				d["plane_chaff"] = int(num(get(c, "amount")))
 			}
 		}
 	}
 	return d
 }
 
+// enumNames : pour l'affichage dans la page, nom de chaque valeur d'énumération envoyée en nombre.
+func enumNames(named map[string]any) map[string]string {
+	d := map[string]any{}
+	flatten("", named, d)
+	out := map[string]string{}
+	for k, x := range d {
+		if s, ok := x.(string); ok && strings.Contains(s, "_") && strings.ToUpper(s) == s {
+			out[k] = s
+		}
+	}
+	return out
+}
+
+func jsonMap(b []byte) map[string]any {
+	var m map[string]any
+	if b != nil {
+		json.Unmarshal(b, &m)
+	}
+	return m
+}
 func (a *app) runVPC() {
 	var conn net.Conn
+	known := map[string]bool{}
 	for range time.Tick(100 * time.Millisecond) {
 		a.vpcMu.Lock()
 		on := a.vpcOn
@@ -151,11 +181,7 @@ func (a *app) runVPC() {
 				continue
 			}
 		}
-		var frame map[string]any
-		if b := a.tel.JSON(); b != nil {
-			json.Unmarshal(b, &frame)
-		}
-		b, _ := json.Marshal(vpcData(frame))
+		b, _ := json.Marshal(vpcData(jsonMap(a.tel.JSONFull(true)), jsonMap(a.tel.JSON()), known))
 		_, err := conn.Write(b)
 		a.vpcMu.Lock()
 		if err != nil {
@@ -182,14 +208,12 @@ func (a *app) vpcHandler(mux *http.ServeMux) {
 			c.VPC = on
 			saveCfg(c)
 		}
-		var frame map[string]any
-		if b := a.tel.JSON(); b != nil {
-			json.Unmarshal(b, &frame)
-		}
+		data := vpcData(jsonMap(a.tel.JSONFull(true)), jsonMap(a.tel.JSON()), nil)
+		names := enumNames(jsonMap(a.tel.JSONFull(false)))
 		a.vpcMu.Lock()
 		defer a.vpcMu.Unlock()
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{"on": a.vpcOn, "addr": vpcAddr, "sent": a.vpcSent, "err": a.vpcErr,
-			"linktool": running("VPC_Link_Tool.exe", "VPC Link Tool.exe", "VPCLinkTool.exe"), "data": vpcData(frame)})
+			"linktool": running("VPC_Link_Tool.exe", "VPC Link Tool.exe", "VPCLinkTool.exe"), "data": data, "enums": names})
 	})
 }

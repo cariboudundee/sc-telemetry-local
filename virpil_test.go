@@ -20,16 +20,25 @@ func TestVPCData(t *testing.T) {
 	if err := json.Unmarshal([]byte(sampleFrame), &f); err != nil {
 		t.Fatal(err)
 	}
-	d := vpcData(f)
-	want := map[string]any{"aircraftType": "GAMA_Hyun", "mech_Gear_Status": 1, "mech_Gear_Value": 100, "mcp_MasterWarning": 1,
-		"sc_hit": 1, "sc_missile": 1, "sc_shields": 1, "sc_decoupled": 1, "sc_nav": 1, "mcp_AutopilotOn": 1,
-		"plane_flare": 48, "plane_chaff": 5, "plane_RadarAltimeter": 20, "sc_hydrogen": 95, "sc_lights": 1}
+	full := map[string]any{"vehicle": map[string]any{"state": map[string]any{"lights_enabled": false,
+		"flight": map[string]any{"state": map[string]any{"gear": 2.0}}, "power": map[string]any{"shield_emitters": true}}},
+		"actor": map[string]any{"state": map[string]any{"uec_balance": "15001986"}},
+		"weapons": map[string]any{"weapons": []any{map[string]any{"ready_to_fire": true}}}}
+	known := map[string]bool{"annunciators.hit": true}
+	d := vpcData(full, f, known)
+	want := map[string]any{"lights_enabled": 0, "flight.state.gear": 2.0, "power.shield_emitters": 1, "actor.state.uec_balance": 15001986.0,
+		"weapons.weapons.0.ready_to_fire": 1, "annunciators.hit": 0,
+		"aircraftType": "GAMA_Hyun", "mech_Gear_Status": 1, "mech_Gear_Value": 100, "mcp_MasterWarning": 1,
+		"mcp_AutopilotOn": 1, "plane_flare": 48, "plane_chaff": 5, "plane_RadarAltimeter": 20}
 	for k, w := range want {
 		if d[k] != w {
-			t.Errorf("%s = %v, attendu %v", k, d[k], w)
+			t.Errorf("%s = %v (%T), attendu %v", k, d[k], d[k], w)
 		}
 	}
-	if d := vpcData(nil); d["sc_seated"] != 0 {
+	if !known["lights_enabled"] {
+		t.Error("clé non mémorisée")
+	}
+	if d := dcsKeys(nil); d["export_allowed"] != 0 {
 		t.Errorf("hors du siège : %v", d)
 	}
 }
