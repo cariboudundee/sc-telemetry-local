@@ -42,6 +42,13 @@ Désactivé par défaut. L'outil se présente à VPC Link Tool comme le script D
 `mech_Gear_Value`, `mcp_MasterWarning`, `mcp_AutopilotOn`, `plane_flare`, `plane_chaff`, `plane_RadarAltimeter`…)
 et tous les champs de la télémétrie sous leur nom d'origine (`lights_enabled`, `flight.state.gear`,
 `power.shield_generators`, `annunciators.hit`…), booléens en 0/1, énumérations en nombres. Les LED se règlent ensuite dans VPC Link Tool.
+## Démarrage automatique et réglage des LED
+
+- Bouton « ⚙ » : entrée « Exécuter » du compte Windows (`SCTelemetryLocal.exe -wait`). L'outil attend sans fenêtre,
+  s'ouvre quand RSI Launcher ou Star Citizen démarre, se remet en attente 1 minute après leur fermeture. Une seule
+  instance à la fois ; relancer l'exe réveille celle qui attend. Journal : `%APPDATA%\SCTelemetryLocal\autostart.log`.
+- Page `/leds.html` : règles par LED VKB (première règle vraie = mode + couleur), conditions sur les noms d'origine
+  de la télémétrie (`seated`, `flight.state.gear == DEPLOYED`…), identification d'une LED, réglage d'origine.
 ## Compiler
 
 Go 1.22 ou plus récent, sous Windows :

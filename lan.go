@@ -20,6 +20,7 @@ type config struct {
 	SCDir string `json:"scDir,omitempty"`
 	VKB   bool   `json:"vkb,omitempty"`
 	VPC   bool   `json:"vpc,omitempty"`
+	VKBLeds []vkbLed `json:"vkbLeds,omitempty"`
 }
 
 func cfgPath() string { return filepath.Join(os.Getenv("APPDATA"), "SCTelemetryLocal", "config.json") }

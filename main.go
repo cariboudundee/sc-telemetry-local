@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var version = "0.3.8"
+var version = "0.3.9"
 
 func main() {
 	once := flag.Bool("once", false, "affiche une trame et l'état du Game.log, puis quitte (test)")
@@ -16,7 +16,31 @@ func main() {
 	port := flag.Int("port", 8742, "port de la page web")
 	lan := flag.Bool("lan", false, "rend la page accessible aux autres appareils du réseau local (téléphone, tablette)")
 	noBrowser := flag.Bool("nobrowser", false, "n'ouvre pas le navigateur au démarrage")
+	wait := flag.Bool("wait", false, "attend sans fenêtre que RSI Launcher ou Star Citizen démarre (démarrage automatique)")
+	detached := flag.Bool("detached", false, "usage interne")
 	flag.Parse()
+
+	refreshAutostart()
+	if *wait && !*detached {
+		relaunchDetached()
+	}
+	if !singleInstance() {
+		if *wait {
+			os.Exit(0)
+		}
+		wakeOther()
+		fmt.Println("SC Telemetry Local tourne déjà : ouverture de la page.")
+		time.Sleep(1500 * time.Millisecond)
+		if !*noBrowser {
+			openBrowser(fmt.Sprintf("http://localhost:%d", *port))
+		}
+		time.Sleep(1500 * time.Millisecond)
+		os.Exit(0)
+	}
+	if *wait {
+		*noBrowser = !waitForGame()
+		go backToWait()
+	}
 
 	in := findInstall(*scDir)
 	if in == nil && *scDir == "" {

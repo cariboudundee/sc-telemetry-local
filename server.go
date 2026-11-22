@@ -103,6 +103,7 @@ func (a *app) serve(addr string) error {
 	a.lanHandlers(mux)
 	a.firewallHandler(mux)
 	a.vkbHandler(mux)
+	autostartHandler(mux)
 	go a.runVKB()
 	a.vpcHandler(mux)
 	go a.runVPC()
