@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var version = "0.3.6"
+var version = "0.3.7"
 
 func main() {
 	once := flag.Bool("once", false, "affiche une trame et l'état du Game.log, puis quitte (test)")
@@ -72,7 +72,7 @@ func main() {
 	}
 	a := &app{in: in, tel: tel, gi: gi}
 	a.port, a.lanOn = *port, *lan || loadCfg().LAN
-	a.vkbOn = loadCfg().VKB
+	a.vkbOn, a.vpcOn = loadCfg().VKB, loadCfg().VPC
 	url := fmt.Sprintf("http://localhost:%d", *port)
 	fmt.Println("Tableau de bord :", url)
 	fmt.Println("Ferme cette fenêtre pour arrêter.")

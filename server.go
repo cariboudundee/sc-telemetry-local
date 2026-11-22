@@ -49,6 +49,7 @@ type app struct {
 	gi  *GameInfo
 	lanState
 	vkbState
+	vpcState
 }
 
 func (a *app) serve(addr string) error {
@@ -103,6 +104,8 @@ func (a *app) serve(addr string) error {
 	a.firewallHandler(mux)
 	a.vkbHandler(mux)
 	go a.runVKB()
+	a.vpcHandler(mux)
+	go a.runVPC()
 	a.mux = mux
 	if a.lanOn {
 		a.lanOn = false
