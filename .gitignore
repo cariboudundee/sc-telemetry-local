@@ -1,0 +1,4 @@
+*.exe
+release/
+run.log
+run.err

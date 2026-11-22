@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SC Telemetry Local</title>
+<style>
+:root{--bg:#070b10;--panel:#0d141c;--line:#1b2a38;--text:#d6e3ee;--dim:#6f8597;--acc:#3ec7ff;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d4d;--off:#3a4652}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 "Segoe UI",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+header h1{font-size:16px;margin:0;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bad)}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+#status{color:var(--dim);font-size:13px}.sp{flex:1}
+button.lang{background:none;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:3px 10px;cursor:pointer}
+main{display:grid;gap:12px;padding:12px 16px 24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));max-width:1500px;margin:0 auto}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+section h2{margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
+section h2 b{color:var(--text);letter-spacing:.04em;text-transform:none;font-size:13px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.big{font-size:22px;font-weight:700;margin-bottom:6px;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--dim)}
+.chip.on{color:var(--ok);border-color:#1f5a3a}.chip.off{color:var(--bad);border-color:#5a1f1f}.chip.mid{color:var(--warn);border-color:#5a441f}
+.ann{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.ann div{text-align:center;padding:6px 0;border-radius:6px;font-size:12px;font-weight:700;background:#0a1016;color:var(--off);border:1px solid var(--line)}
+.ann .nom{color:#5fb98a}.ann .minor{color:#000;background:var(--warn)}.ann .major{color:#fff;background:var(--bad)}.ann .blink{animation:bl .9s steps(2) infinite}
+@keyframes bl{50%{opacity:.25}}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}.kv dt{color:var(--dim)}.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:10px}
+.num{background:#0a1016;border:1px solid var(--line);border-radius:8px;padding:8px}.num span{display:block;color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.num b{font-size:20px;font-variant-numeric:tabular-nums}
+.bar{margin:7px 0}.bar label{display:flex;justify-content:space-between;font-size:12px;color:var(--dim)}.bar label b{color:var(--text);font-variant-numeric:tabular-nums}
+.bar i{display:block;height:7px;background:#0a1016;border-radius:4px;overflow:hidden;margin-top:3px;border:1px solid var(--line)}.bar i u{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+.bar.low i u{background:var(--warn)}.bar.crit i u{background:var(--bad)}
+.empty{color:var(--dim);font-style:italic;padding:14px 0}
+ul.notes{list-style:none;padding:0;margin:8px 0 0;font-size:13px;color:var(--dim)}ul.notes li{padding:3px 0;border-top:1px solid var(--line)}
+#setup{grid-column:1/-1;border-color:#2b4a63}#setup.done{padding:8px 14px}#setup.done .steps,#setup.done .act{display:none}
+.steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.steps span{font-size:13px;color:var(--dim)}.steps .ok{color:var(--ok)}.steps .cur{color:var(--acc);font-weight:700}
+.act{background:#0a1016;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:10px 12px}.act p{margin:0 0 6px}
+.act button{background:var(--acc);color:#001018;border:0;border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer}.act code{color:var(--acc)}
+#phone{display:none;position:fixed;top:52px;right:16px;z-index:3;width:300px;background:var(--panel);border:1px solid #2b4a63;border-radius:10px;padding:14px;box-shadow:0 8px 30px #000a}
+#phone.open{display:block}#phone p{margin:0 0 8px;font-size:13px;color:var(--dim)}#phone img{display:block;margin:10px auto;background:#fff;padding:6px;border-radius:6px}
+#phone .url{text-align:center;font-weight:700;color:var(--acc);word-break:break-all}.sw{display:flex;align-items:center;gap:10px;margin-bottom:8px;cursor:pointer}.sw input{width:18px;height:18px}
+footer{color:var(--dim);font-size:12px;text-align:center;padding:0 16px 20px}
+@media (max-width:420px){main{padding:10px}header h1{font-size:14px}}
+</style></head><body>
+<header><span class="dot" id="dot"></span><h1>SC Telemetry Local</h1><span id="status"></span><span class="sp"></span><button class="lang" id="phoneBtn" hidden></button><button class="lang" id="lang">EN</button></header><div id="phone"></div>
+<main><section id="setup"><h2><span data-t="setup"></span><b id="setupSum"></b></h2><div class="steps" id="steps"></div><div class="act" id="act"></div></section>
+<section id="ship"><h2><span data-t="ship"></span><b id="shipName"></b></h2><div id="shipBody"></div></section>
+<section id="flight"><h2><span data-t="flight"></span></h2><div id="flightBody"></div></section>
+<section id="pilot"><h2><span data-t="pilot"></span><b id="pilotState"></b></h2><div id="pilotBody"></div></section>
+<section id="mission"><h2><span data-t="mission"></span><b id="juris"></b></h2><div id="missionBody"></div></section>
+</main>
+<footer data-t="foot"></footer>
+<script>
+const T={fr:{ship:"Vaisseau",flight:"Vol",pilot:"Pilote",mission:"Mission",foot:"100 % local · lecture seule · aucune donnée envoyée sur Internet",
+ noShip:"Pas dans un vaisseau",noGame:"Jeu non connecté",waiting:"En attente du jeu…",live:"En direct",gear:"Train",vtol:"VTOL",lights:"Feux",mode:"Mode",
+ speed:"Vitesse",ralt:"Alt. radar",alt:"Altitude",hdg:"Cap",vs:"V. verticale",h2:"Hydrogène",qt:"Quantique",boost:"Boost",shields:"Boucliers",hull:"Coque",
+ health:"Santé",o2:"Oxygène",hunger:"Faim",thirst:"Soif",temp:"T° corps",heart:"Pouls",grav:"Gravité",ext:"T° extérieure",air:"Air",uec:"aUEC",role:"Rôle",
+ contract:"Contrat",objective:"Objectif",none:"Aucun contrat suivi",shard:"Shard",server:"Serveur",handle:"Pseudo",version:"Version",monitored:"Espace surveillé",yes:"oui",no:"non",
+ decoy:"Leurres",noise:"Bruit",wpn:"Armes prêtes",
+ p:{powerplants:"Centrale",engines:"Moteurs",weapons:"Armes",coolers:"Refroid.",life_support:"Survie",sensors:"Capteurs",gravity_generators:"Gravité",shield_generators:"Gén. bouclier",shield_emitters:"Émett. bouclier"},
+ e:{DEPLOYED:"sorti",RETRACTED:"rentré",DEPLOYING:"sortie…",RETRACTING:"rentrée…",ON_FOOT:"à pied",SEATED:"assis",EVA:"EVA",PILOT:"pilote",CREW:"équipage",GUNNER:"artilleur",SAFE:"respirable"}},
+ en:{ship:"Ship",flight:"Flight",pilot:"Pilot",mission:"Mission",foot:"100% local · read-only · no data sent to the Internet",
+ noShip:"Not in a ship",noGame:"Game not connected",waiting:"Waiting for the game…",live:"Live",gear:"Gear",vtol:"VTOL",lights:"Lights",mode:"Mode",
+ speed:"Speed",ralt:"Radar alt.",alt:"Altitude",hdg:"Heading",vs:"Vert. speed",h2:"Hydrogen",qt:"Quantum",boost:"Boost",shields:"Shields",hull:"Hull",
+ health:"Health",o2:"Oxygen",hunger:"Hunger",thirst:"Thirst",temp:"Body temp",heart:"Heart rate",grav:"Gravity",ext:"Outside temp",air:"Air",uec:"aUEC",role:"Role",
+ contract:"Contract",objective:"Objective",none:"No tracked contract",shard:"Shard",server:"Server",handle:"Handle",version:"Version",monitored:"Monitored space",yes:"yes",no:"no",
+ decoy:"Decoys",noise:"Noise",wpn:"Weapons ready",
+ p:{powerplants:"Power plant",engines:"Engines",weapons:"Weapons",coolers:"Coolers",life_support:"Life support",sensors:"Sensors",gravity_generators:"Gravity",shield_generators:"Shield gen.",shield_emitters:"Shield emit."},
+ e:{DEPLOYED:"down",RETRACTED:"up",DEPLOYING:"lowering…",RETRACTING:"raising…",ON_FOOT:"on foot",SEATED:"seated",EVA:"EVA",PILOT:"pilot",CREW:"crew",GUNNER:"gunner"}}};
+let L="fr";try{L=localStorage.getItem("sctl-lang")||(navigator.language.startsWith("fr")?"fr":"en")}catch(e){}
+let S=null;const $=id=>document.getElementById(id);
+const g=(o,p)=>p.split(".").reduce((a,k)=>a==null?a:a[k],o);
+const en=s=>s?String(s).replace(/^[A-Z0-9_]*?_(STATE|MODE|ROLE|TYPE)_/,""):"";
+const tr=v=>T[L].e[v]||(v?v.toLowerCase().replace(/_/g," "):"—");
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const frac=v=>v==null?null:(v<=1.0001?v*100:v);
+const num=(v,d=0)=>v==null||!isFinite(v)?"—":Number(v).toLocaleString(L==="fr"?"fr-BE":"en-GB",{maximumFractionDigits:d,minimumFractionDigits:d});
+const dist=v=>v==null||v>1e30?"—":v>=10000?num(v/1000)+" km":v>=1000?num(v/1000,2)+" km":num(v)+" m";
+function bar(label,pct,txt,inv){const p=pct==null?0:Math.max(0,Math.min(100,pct));const c=pct==null?"":(inv?(p>85?"crit":p>65?"low":""):(p<15?"crit":p<35?"low":""));
+ return `<div class="bar ${c}"><label>${esc(label)}<b>${esc(txt!=null?txt:(pct==null?"—":num(p)+" %"))}</b></label><i><u style="width:${p}%"></u></i></div>`}
+const box=(l,v)=>`<div class="num"><span>${esc(l)}</span><b>${esc(v)}</b></div>`;
+const kv=rows=>`<dl class="kv">${rows.filter(r=>r).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;
+function render(){const t=T[L];document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t[e.dataset.t]);$("lang").textContent=L==="fr"?"EN":"FR";document.documentElement.lang=L;
+ const f=S&&S.frame,on=S&&S.connected&&f;$("dot").className="dot"+(on?" on":"");$("status").textContent=S?(on?t.live+" · "+S.branch:t.waiting+" ("+S.branch+")"):t.noGame;
+ const v=f&&f.vehicle&&f.vehicle.state,a=f&&f.actor||{},w=f&&f.weapons||{},G=S&&S.game||{};
+ // vaisseau
+ if(!v){$("shipName").textContent="";$("shipBody").innerHTML=`<div class="empty">${on?t.noShip:t.noGame}</div>`;$("flightBody").innerHTML=`<div class="empty">${on?t.noShip:t.noGame}</div>`}
+ else{$("shipName").textContent=(v.class_name||v.name||"").replace(/_/g," ");
+  const fl=g(v,"flight.state")||{},mm=en(g(v,"master_mode.mode"));const pw=v.power||{};
+  const chips=Object.keys(t.p).map(k=>`<span class="chip ${pw[k]?"on":"off"}">${esc(t.p[k])}</span>`).join("");
+  const st=[[t.mode,mm?(mm+(g(v,"master_mode.spooled")?" · QT":"")):"—"],[t.gear,tr(en(fl.gear))],[t.vtol,tr(en(fl.vtol))],[t.lights,v.lights_enabled?t.yes:t.no]];
+  const an=v.annunciators||{};const A=["pwr","wpn","thr","shld","cool","qdrv","radr","prox","hit","misl"].map(k=>{const s=en(an[k]);
+   const c=/MAJOR/.test(s)?"major":/MINOR/.test(s)?"minor":/OFF/.test(s)?"":"nom";return `<div class="${c}${/FLASH|BLINK/.test(s)?" blink":""}">${k.toUpperCase()}</div>`}).join("");
+  const ws=w.weapons||[],ready=ws.filter(x=>x.ready_to_fire).length,cms=(w.countermeasures||[]);
+  const cm=cms.map(c=>[/DECOY/.test(c.type)?t.decoy:t.noise,num(c.amount||c.count||0)]);
+  $("shipBody").innerHTML=`<div class="chips">${st.map(([k,x])=>`<span class="chip on">${esc(k)} : ${esc(x)}</span>`).join("")}</div><div class="chips">${chips}</div><div class="ann">${A}</div>`+
+   kv([ws.length?[t.wpn,ready+" / "+ws.length]:null,...cm]);
+  const ins=g(v,"flight.instruments")||{};
+  $("flightBody").innerHTML=`<div class="nums">${box(t.speed,num(ins.speed||0)+" m/s")}${box(t.ralt,dist(ins.radar_altitude))}${box(t.alt,dist(ins.altitude))}${box(t.hdg,num(ins.heading||0)+"°")}${box(t.vs,num(ins.vertical_speed_indicator||0,1)+" m/s")}</div>`+
+   bar(t.h2,frac(ins.hydrogen_fuel))+bar(t.qt,frac(ins.quantum_fuel))+bar(t.boost,frac(g(ins,"boost.reserves")))+bar(t.shields,frac(g(v,"shields.level")))+bar(t.hull,frac(v.health))}
+ // pilote
+ const vi=a.vitals||{},as=a.state||{},envi=a.environment||{};const pc=o=>o&&o.max?o.current/o.max*100:null;
+ $("pilotState").textContent=as.locomotion?tr(en(as.locomotion))+(as.crew_role?" · "+tr(en(as.crew_role)):""):"";
+ $("pilotBody").innerHTML=!f?`<div class="empty">${t.noGame}</div>`:bar(t.health,pc(vi.health))+bar(t.o2,pc(vi.oxygen))+bar(t.hunger,pc(vi.hunger))+bar(t.thirst,pc(vi.thirst))+
+  `<div class="nums" style="margin-top:10px">${box(t.temp,num(g(vi,"body_temperature.current"),1)+" °C")}${box(t.heart,num(vi.heart_rate)+" bpm")}${box(t.grav,num(vi.gravity,2)+" G")}${box(t.ext,num(envi.external_temperature)+" °C")}</div>`+
+  kv([[t.uec,as.uec_balance!=null?num(Number(as.uec_balance)):"—"],[t.air,envi.breathable_atmosphere?t.yes:t.no]]);
+ // mission
+ const ms=G.missions||{},cur=G.current&&ms[G.current];$("juris").textContent=G.jurisdiction||"";
+ $("missionBody").innerHTML=`<div class="big">${esc(cur&&cur.objective||(cur?cur.name:t.none))}</div>`+
+  kv([cur&&cur.name?[t.contract,cur.name]:null,[t.monitored,G.monitored==null?"—":G.monitored?t.yes:t.no],[t.shard,G.shard||"—"],[t.server,G.server||"—"],[t.handle,G.handle||"—"],[t.version,(G.branch||"—")+(G.build?" · "+G.build:"")]])+
+  `<ul class="notes">${(G.lastNotifications||[]).map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`}
+$("lang").onclick=()=>{L=L==="fr"?"en":"fr";try{localStorage.setItem("sctl-lang",L)}catch(e){}render()};
+function connect(){const es=new EventSource("/events");es.onmessage=e=>{try{S=JSON.parse(e.data);render()}catch(x){}};es.onerror=()=>{S=null;render()}}
+const ST={fr:{setup:"Mise en route",ready:"Tout est prêt ✓",s:["Star Citizen trouvé","Télémétrie autorisée","Jeu lancé","Télémétrie active","En jeu"],
+ env:"Le jeu doit être autorisé à partager sa télémétrie avec ce PC (variable Windows <code>GRPC_CLIENT_SERVER_ENABLED</code>, pour ton compte uniquement). Rien n'est envoyé sur Internet.",envBtn:"Autoriser",
+ launch:"Lance Star Citizen depuis le RSI Launcher.",restart:"Quitte complètement le RSI Launcher (clic droit sur son icône près de l'horloge → Quit), puis relance-le et démarre le jeu. Il doit être redémarré pour voir l'autorisation.",
+ noTel:"Le jeu tourne mais sa télémétrie n'est pas active. S'il est encore en chargement, patiente. Sinon, il a été lancé avant l'autorisation : quitte le jeu et le RSI Launcher complètement, puis relance-les.",
+ load:"Entre dans l'univers : le flux démarre une fois que tu es chargé en jeu.",err:"Échec : "},
+ en:{setup:"Setup",ready:"All set ✓",s:["Star Citizen found","Telemetry allowed","Game running","Telemetry active","In game"],
+ env:"The game must be allowed to share its telemetry with this PC (Windows variable <code>GRPC_CLIENT_SERVER_ENABLED</code>, for your account only). Nothing is sent to the Internet.",envBtn:"Allow",
+ launch:"Start Star Citizen from the RSI Launcher.",restart:"Fully quit the RSI Launcher (right-click its icon near the clock → Quit), then restart it and launch the game. It must restart to see the permission.",
+ noTel:"The game is running but its telemetry is off. If it is still loading, wait. Otherwise it was started before the permission: fully quit the game and the RSI Launcher, then restart them.",
+ load:"Enter the universe: the stream starts once you are loaded in game.",err:"Failed: "}};
+let SU=null;
+function renderSetup(){const t=ST[L];document.querySelector('[data-t="setup"]').textContent=t.setup;if(!SU)return;
+ const done=[SU.found,SU.env,SU.game,SU.listening,SU.connected];const cur=done.indexOf(false);
+ $("setup").className=cur<0?"done":"";$("setupSum").textContent=cur<0?t.ready:(SU.branch||"");
+ $("steps").innerHTML=t.s.map((x,i)=>`<span class="${done[i]?"ok":i===cur?"cur":""}">${done[i]?"✓":i===cur?"▶":"○"} ${esc(x)}</span>`).join("");
+ let h="";if(cur===1)h=`<p>${t.env}</p><button id="envBtn">${t.envBtn}</button>`;
+ else if(cur===2)h=`<p>${SU.envSetNow&&SU.launcher?t.restart:t.launch}</p>`;else if(cur===3)h=`<p>${t.noTel}</p>`;else if(cur===4)h=`<p>${t.load}</p>`;
+ $("act").innerHTML=h;const b=$("envBtn");if(b)b.onclick=async()=>{b.disabled=true;try{const r=await fetch("/setup/env",{method:"POST",headers:{"X-SCTL":"1"}});if(!r.ok)throw new Error(await r.text())}catch(e){$("act").insertAdjacentHTML("beforeend",`<p>${t.err}${esc(e.message)}</p>`)}pollSetup()}}
+async function pollSetup(){try{SU=await (await fetch("/setup")).json()}catch(e){}renderSetup()}
+setInterval(pollSetup,2000);pollSetup();const _r=render;render=function(){_r();renderSetup()};const PT={fr:{btn:"📱 Téléphone",sw:"Accessible depuis le réseau local",help:"Ouvre cette adresse sur un téléphone ou une tablette connecté au même Wi-Fi, ou scanne le QR code. Lecture seule depuis ces appareils.",
+ off:"Désactivé : la page n'est visible que sur ce PC.",fw:"Si Windows demande l'autorisation du pare-feu, autorise les réseaux privés uniquement. Si le téléphone n'arrive pas à se connecter :",fwBtn:"Autoriser dans le pare-feu Windows",fwOk:"Règle créée. Réessaie depuis le téléphone.",fwKo:"Non créée (refusée ou annulée).",none:"Aucune adresse réseau locale trouvée."},
+ en:{btn:"📱 Phone",sw:"Reachable from the local network",help:"Open this address on a phone or tablet on the same Wi-Fi, or scan the QR code. Read-only from those devices.",
+ off:"Off: the page is only visible on this PC.",fw:"If Windows asks about the firewall, allow private networks only. If the phone cannot connect:",fwBtn:"Allow in Windows Firewall",fwOk:"Rule created. Try again from the phone.",fwKo:"Not created (refused or cancelled).",none:"No local network address found."}};
+const isLocal=["localhost","127.0.0.1","[::1]"].includes(location.hostname);let LN=null;
+async function lanCall(on){try{LN=await (await fetch(on==null?"/lan":"/lan?on="+(on?1:0),on==null?{}:{method:"POST",headers:{"X-SCTL":"1"}})).json()}catch(e){}renderPhone()}
+function renderPhone(){const t=PT[L],b=$("phoneBtn");b.hidden=!isLocal;b.textContent=t.btn;if(!isLocal||!LN)return;
+ const u=(LN.urls||[])[0];$("phone").innerHTML=`<label class="sw"><input type="checkbox" id="lanSw" ${LN.on?"checked":""}>${esc(t.sw)}</label>`+
+  (LN.on?(u?`<p>${esc(t.help)}</p><img src="/qr?u=${encodeURIComponent(u)}" width="220" height="220" alt=""><div class="url">${(LN.urls||[]).map(esc).join("<br>")}</div><p style="margin-top:8px">${esc(t.fw)}</p><p><button class="lang" id="fwBtn">${esc(t.fwBtn)}</button> <span id="fwMsg"></span></p>`:`<p>${esc(t.none)} ${esc(LN.err||"")}</p>`):`<p>${esc(t.off)}</p>`);
+ $("lanSw").onchange=e=>lanCall(e.target.checked);const fb=$("fwBtn");if(fb)fb.onclick=async()=>{fb.disabled=true;$("fwMsg").textContent="…";let ok=false;try{ok=(await fetch("/firewall",{method:"POST",headers:{"X-SCTL":"1"}})).ok}catch(e){}$("fwMsg").textContent=ok?t.fwOk:t.fwKo;fb.disabled=false}}
+$("phoneBtn").onclick=()=>{$("phone").classList.toggle("open");lanCall()};
+if(isLocal)lanCall();const _r2=render;render=function(){_r2();renderPhone()};render();connect();
+</script></body></html>
+
+
+
