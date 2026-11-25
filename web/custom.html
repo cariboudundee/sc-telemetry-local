@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tableau personnalisé · SC Telemetry Local</title>
+<link rel="stylesheet" href="/vendor/gridstack/gridstack.min.css">
+<style>
+:root{--bg:#070b10;--panel:#0d141c;--line:#1b2a38;--text:#d6e3ee;--dim:#6f8597;--acc:#3ec7ff;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d4d;--off:#3a4652}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.35 "Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:20}
+header h1{font-size:15px;margin:0;letter-spacing:.08em;text-transform:uppercase;color:var(--acc)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--bad)}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+a{color:var(--acc)}.sp{flex:1}#msg{color:var(--dim);font-size:12px}
+button,select,input,textarea{background:#0a1118;border:1px solid var(--line);color:var(--text);border-radius:6px;padding:3px 8px;font:inherit}
+button{background:#132130;border-color:#2b4a63;cursor:pointer}button.pri{background:#0f3a55;border-color:var(--acc)}button.del{border-color:#5a1f1f;color:#ff9a9a}button:disabled{opacity:.5}
+#tabs{display:flex;gap:4px;flex-wrap:wrap}#tabs button.cur{border-color:var(--acc);color:var(--acc)}
+#wrap{display:flex;gap:10px;padding:10px 14px}#gridbox{flex:1;min-width:0}
+#pane{width:310px;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;align-self:flex-start;position:sticky;top:56px;max-height:calc(100vh - 70px);overflow:auto;display:none}
+body.edit #pane{display:block}#pane h3{margin:10px 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+#pane label{display:block;font-size:12px;color:var(--dim);margin:6px 0 2px}#pane input,#pane select,#pane textarea{width:100%}
+.pal{display:grid;grid-template-columns:1fr 1fr;gap:4px}.row{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.grid-stack-item-content{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;overflow:hidden;display:flex;flex-direction:column}
+body.edit .grid-stack-item-content{cursor:move}.sel>.grid-stack-item-content{outline:2px solid var(--acc)}
+.lb{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vl{font-size:24px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.vl small{font-size:13px;color:var(--dim);font-weight:400;margin-left:3px}
+.tt{font-size:17px;font-weight:700;color:var(--acc)}
+.bar{height:8px;background:#16222e;border-radius:4px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:#6fb6ff}
+.bh{display:flex;justify-content:space-between;gap:6px}.bh b{font-size:13px}
+.lamp{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:6px;font-weight:700;font-size:13px;border:1px solid var(--line);color:var(--off);letter-spacing:.04em}
+.ann{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:4px;flex:1;align-content:start}
+.ann div{border:1px solid var(--line);border-radius:5px;text-align:center;font-size:11px;font-weight:700;padding:5px 0;color:var(--off)}
+.ann .nom{color:var(--ok);border-color:#1f5a3a}.ann .minor{color:var(--warn);border-color:#5a441f}.ann .major{color:var(--bad);border-color:#5a1f1f}
+.blink{animation:bl 1s steps(2,start) infinite}@keyframes bl{to{visibility:hidden}}
+.chips{display:flex;flex-wrap:wrap;gap:4px}.chips span{font-size:11px;border:1px solid var(--line);border-radius:5px;padding:2px 6px}.chips .on{color:var(--ok);border-color:#1f5a3a}.chips .off{color:var(--bad);border-color:#5a1f1f}
+.list{font-size:12px;color:var(--dim)}.list div{border-top:1px solid var(--line);padding:3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.na{opacity:.35}
+.help{font-size:12px;color:var(--dim)}
+</style></head><body>
+<header><span class="dot" id="dot"></span><h1 id="t_title"></h1><a href="/" id="t_back"></a><select id="board"></select><div id="tabs"></div><span class="sp"></span><span id="msg"></span>
+<button id="editBtn" hidden></button><button class="pri" id="saveBtn" hidden></button><button id="revertBtn" hidden></button><button id="lang">EN</button></header>
+<div id="wrap"><div id="gridbox"><div class="grid-stack" id="grid"></div></div><div id="pane"></div></div>
+<datalist id="fields"></datalist>
+<script src="/vendor/gridstack/gridstack-all.js"></script>
+<script>
+const T={fr:{title:"Tableau perso",back:"← Tableau standard",edit:"Éditer",done:"Terminer",save:"Enregistrer",revert:"Annuler",saved:"Enregistré.",unsaved:"non enregistré",
+add:"Ajouter un widget",widget:"Widget",tab:"Onglet",board:"Tableau",type:"Type",bind:"Valeur du jeu",label:"Étiquette",unit:"Unité",scale:"Multiplier par",dec:"Décimales",min:"Minimum",max:"Maximum",
+op:"Condition",val:"Valeur",colOn:"Couleur si vrai",colOff:"Couleur si faux",textOn:"Texte si vrai (vide = étiquette)",blink:"Clignote si vrai",hide:"Estomper si la valeur est absente",remove:"Supprimer le widget",applied:"Les réglages s'appliquent tout de suite au widget surligné dans la grille. « Enregistrer » en haut garde le tableau.",
+tname:"Nom de l'onglet",tauto:"Afficher automatiquement quand… (vide = jamais)",tautoHelp:"Quand la condition devient vraie, l'onglet s'affiche tout seul. Tu peux toujours cliquer un autre onglet ensuite.",addTab:"+ Onglet",delTab:"Supprimer l'onglet",left:"←",right:"→",bname:"Nom du tableau",ship:"Vaisseau",anyShip:"Tous les vaisseaux",curShip:"Vaisseau actuel",newShip:"Tableau pour ce vaisseau",dup:"Dupliquer",delBoard:"Supprimer le tableau",auto:"Choisir le tableau selon le vaisseau",
+exp:"Exporter",imp:"Importer",reset:"Modèle d'origine",confirmDel:"Supprimer ?",confirmReset:"Remplacer tous tes tableaux par le modèle d'origine ?",noShip:"Monte dans un vaisseau d'abord.",
+types:{value:"Valeur",bar:"Barre",lamp:"Voyant",text:"Texte",title:"Titre",ann:"Voyants du jeu",power:"Alimentation",mission:"Mission",notif:"Notifications"},
+help:"Clique un widget pour le régler, glisse-le pour le déplacer, tire son coin pour le redimensionner. Les valeurs portent les noms d'origine de la télémétrie (comme les règles LED). Pour un état, compare avec son nom : DEPLOYED, MAJOR, NAVIGATION…",
+gen:"Général",main:"Principal",none:"—",obj:"Objectif",shard:"Shard",now:"maintenant : ",
+dl:{ship:"Vaisseau",speed:"Vitesse",alt:"Altitude",ralt:"Alt. radar",hdg:"Cap",gear:"Train",gearOn:"Train sorti",cpl:"Couplé",dcpl:"Découplé",lights:"Feux",ann:"Voyants",sh:"Boucliers",hull:"Coque",pw:"Alimentation",mis:"Mission",notif:"Notifications"}},
+en:{title:"Custom board",back:"← Standard dashboard",edit:"Edit",done:"Done",save:"Save",revert:"Revert",saved:"Saved.",unsaved:"unsaved",
+add:"Add a widget",widget:"Widget",tab:"Tab",board:"Board",type:"Type",bind:"Game value",label:"Label",unit:"Unit",scale:"Multiply by",dec:"Decimals",min:"Minimum",max:"Maximum",
+op:"Condition",val:"Value",colOn:"Color when true",colOff:"Color when false",textOn:"Text when true (empty = label)",blink:"Blink when true",hide:"Dim when the value is missing",remove:"Remove widget",applied:"Settings apply at once to the highlighted widget in the grid. \u201cSave\u201d at the top keeps the board.",
+tname:"Tab name",tauto:"Show automatically when… (empty = never)",tautoHelp:"When the condition becomes true the tab shows by itself. You can still click another tab afterwards.",addTab:"+ Tab",delTab:"Delete tab",left:"←",right:"→",bname:"Board name",ship:"Ship",anyShip:"Any ship",curShip:"Current ship",newShip:"Board for this ship",dup:"Duplicate",delBoard:"Delete board",auto:"Pick the board from the ship",
+exp:"Export",imp:"Import",reset:"Defaults",confirmDel:"Delete?",confirmReset:"Replace all your boards with the defaults?",noShip:"Get in a ship first.",
+types:{value:"Value",bar:"Bar",lamp:"Lamp",text:"Text",title:"Title",ann:"Game lamps",power:"Power",mission:"Mission",notif:"Notifications"},
+help:"Click a widget to set it up, drag to move, drag its corner to resize. Values use the original telemetry names (as in LED rules). For a state, compare with its name: DEPLOYED, MAJOR, NAVIGATION…",
+gen:"General",main:"Main",none:"—",obj:"Objective",shard:"Shard",now:"now: ",
+dl:{ship:"Ship",speed:"Speed",alt:"Altitude",ralt:"Radar alt.",hdg:"Heading",gear:"Gear",gearOn:"Gear down",cpl:"Coupled",dcpl:"Decoupled",lights:"Lights",ann:"Lamps",sh:"Shields",hull:"Hull",pw:"Power",mis:"Mission",notif:"Notifications"}}};
+let L="fr";try{L=localStorage.getItem("sctl-lang")||(navigator.language.startsWith("fr")?"fr":"en")}catch(e){}
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isLocal=["localhost","127.0.0.1","[::1]"].includes(location.hostname);
+const short=n=>String(n??"").replace(/^[A-Z0-9_]*?_(STATE|MODE|ROLE|TYPE)_/,"");
+const W=(id,type,x,y,w,h,o={})=>Object.assign({id,type,x,y,w,h},o);
+function defaults(){const t=T[L],d=t.dl;return{version:1,auto:true,boards:[{id:"b1",name:t.gen,ship:"",tabs:[{name:t.main,widgets:[
+W("w1","text",0,0,4,1,{bind:"class_name",label:d.ship}),
+W("w2","value",4,0,2,1,{bind:"flight.instruments.speed",label:d.speed,unit:"m/s",dec:0}),
+W("w3","value",6,0,2,1,{bind:"flight.instruments.altitude",label:d.alt,unit:"km",scale:0.001,dec:2}),
+W("w4","value",8,0,2,1,{bind:"flight.instruments.radar_altitude",label:d.ralt,unit:"m",dec:0}),
+W("w5","value",10,0,2,1,{bind:"flight.instruments.heading",label:d.hdg,unit:"°",dec:0}),
+W("w6","lamp",0,1,2,1,{bind:"flight.state.gear",op:"==",value:"DEPLOYED",label:d.gear,textOn:d.gearOn,colOn:"#ff4d4d",colOff:"#3a4652"}),
+W("w7","lamp",2,1,2,1,{bind:"flight.settings.ifcs_coupled.enabled",op:"==",value:"0",label:d.cpl,textOn:d.dcpl,colOn:"#ffb020",colOff:"#3a4652"}),
+W("w8","lamp",4,1,2,1,{bind:"lights_enabled",op:"==",value:"1",label:d.lights,colOn:"#3ddc84",colOff:"#3a4652"}),
+W("w9","ann",6,1,6,2,{label:d.ann}),
+W("w10","bar",0,2,3,1,{bind:"shields.level",label:d.sh,min:0,max:1}),
+W("w11","bar",3,2,3,1,{bind:"health",label:d.hull,min:0,max:1}),
+W("w12","bar",0,3,3,1,{bind:"flight.instruments.hydrogen_fuel",label:"Hydrogen",min:0,max:1}),
+W("w13","bar",3,3,3,1,{bind:"flight.instruments.quantum_fuel",label:"Quantum",min:0,max:1}),
+W("w14","power",6,3,6,1,{label:d.pw}),
+W("w15","mission",0,4,6,2,{label:d.mis}),
+W("w16","notif",6,4,6,2,{label:d.notif})]}]}]}}
+let SHIPS=[],building=false,M=null,S=null,F={},edit=false,dirty=false,bi=0,ti=0,sel=null,manual=false,lastShip="",grid=null,els={};
+// valeurs : trame à plat (noms d'origine, sans « vehicle.state. »), plus game.*
+function flat(p,v,o){if(v&&typeof v==="object"){for(const k in v)flat(p+k+".",v[k],o)}else if(v!==null&&v!==undefined)o[p.slice(0,-1).replace(/^vehicle\.state\./,"")]=v}
+let V={};function vals(){V={};if(S&&S.frame)flat("",S.frame,V);if(S&&S.game)flat("game.",S.game,V)}
+// absent de la trame mais connu du schéma : valeur à zéro / faux (le jeu omet les zéros)
+function get(k){if(k in V)return V[k];if(S&&S.frame&&k in F)return typeof F[k]==="number"?0:F[k];return undefined}
+function num(k){const x=get(k);return typeof x==="boolean"?(x?1:0):Number(x)}
+function match(w){const x=get(w.bind);if(x===undefined)return false;const want=String(w.value??"").trim();
+ if(/^-?[\d.]+$/.test(want)){if(typeof x==="string")return false;const v=typeof x==="boolean"?(x?1:0):Number(x),f=Number(want);
+  switch(w.op){case"!=":return v!=f;case">":return v>f;case"<":return v<f;case">=":return v>=f;case"<=":return v<=f}return v==f}
+ const N=String(x).toUpperCase(),Wn=want.toUpperCase(),eq=N===Wn||N.endsWith("_"+Wn);return w.op==="!="?!eq:eq}
+function fmt(n,d){return isFinite(n)?n.toLocaleString(L==="fr"?"fr-BE":"en-GB",{minimumFractionDigits:d,maximumFractionDigits:d}):T[L].none}
+function body(w){const t=T[L],lb=`<div class="lb">${esc(w.label||"")}</div>`,miss=w.bind&&get(w.bind)===undefined;
+ switch(w.type){
+ case"title":return`<div class="tt">${esc(w.label||"")}</div>`;
+ case"value":return lb+`<div class="vl">${miss?t.none:fmt(num(w.bind)*(w.scale??1),w.dec||0)}<small>${esc(w.unit||"")}</small></div>`;
+ case"text":{const x=get(w.bind);return lb+`<div class="vl">${esc(x===undefined||x===""?t.none:short(x).replace(/_/g," "))}</div>`}
+ case"bar":{const mn=+(w.min||0),mx=+(w.max??1)||1,f=Math.max(0,Math.min(1,(num(w.bind)-mn)/(mx-mn)));return`<div class="bh"><span class="lb">${esc(w.label||"")}</span><b>${miss?t.none:Math.round(f*100)+" %"}</b></div><div class="bar"><i style="width:${miss?0:f*100}%"></i></div>`}
+ case"lamp":{const on=match(w),c=on?(w.colOn||"#3ddc84"):(w.colOff||"#3a4652");return`<div class="lamp ${on&&w.blink?"blink":""}" style="color:${esc(c)};border-color:${esc(c)}">${esc(on&&w.textOn?w.textOn:(w.label||""))}</div>`}
+ case"ann":{const a=["pwr","wpn","thr","shld","cool","qdrv","radr","prox","hit","misl"];return lb+`<div class="ann">${a.map(k=>{const s=String(get("annunciators."+k)||"");const c=/MAJOR/.test(s)?"major":/MINOR/.test(s)?"minor":(!s||/OFF/.test(s))?"":"nom";return`<div class="${c} ${/FLASH|BLINK/.test(s)?"blink":""}">${k.toUpperCase()}</div>`}).join("")}</div>`}
+ case"power":{const p=["powerplants","engines","weapons","coolers","life_support","sensors","gravity_generators","shield_generators","shield_emitters"];return lb+`<div class="chips">${p.map(k=>`<span class="${get("power."+k)?"on":"off"}">${k.replace(/_/g," ")}</span>`).join("")}</div>`}
+ case"mission":{const g=(S&&S.game)||{},cur=g.current&&g.missions&&g.missions[g.current];return lb+`<div class="vl" style="font-size:16px">${esc(cur?cur.name:t.none)}</div><div class="list"><div>${esc(t.obj)} : ${esc(cur&&cur.objective||t.none)}</div><div>${esc(t.shard)} : ${esc(g.shard||t.none)}</div></div>`}
+ case"notif":{const n=((S&&S.game&&S.game.lastNotifications)||[]).slice(0,6);return lb+`<div class="list">${n.map(x=>`<div>${esc(x)}</div>`).join("")}</div>`}}
+ return lb}
+function board(){return M.boards[bi]}function tab(){return board().tabs[ti]}
+// le tableau d'un vaisseau vaut aussi pour ses variantes (RSI_Constellation -> RSI_Constellation_Andromeda)
+function shipScore(bs,cls){if(!bs||!cls)return 0;const a=bs.toLowerCase(),c=cls.toLowerCase();return c===a?1000:c.startsWith(a+"_")?a.length:0}
+let lastAuto=-1;
+// onglet automatique : le premier onglet dont la condition est vraie s'affiche quand ça change
+function pickTab(){if(edit)return;const tabs=board().tabs;let i=tabs.findIndex(x=>x.auto&&x.auto.bind&&match(x.auto));if(i!==lastAuto){lastAuto=i;if(i>=0&&i!==ti){ti=i;sel=null;build()}}}
+function pickBoard(){const ship=V.class_name||"";if(ship!==lastShip){lastShip=ship;manual=false}
+ if(!M.auto||manual||edit)return;let i=-1,best=0;M.boards.forEach((b,j)=>{const s=shipScore(b.ship,ship);if(s>best){best=s;i=j}});if(i<0)i=Math.max(0,M.boards.findIndex(b=>!b.ship));if(i!==bi){bi=i;ti=0;lastAuto=-1;build()}}
+const pretty=s=>String(s).replace(/_/g," ");
+function shipSelect(b){const t=T[L],cur=V.class_name,list=[...SHIPS];if(b.ship&&!list.some(x=>x.toLowerCase()===b.ship.toLowerCase()))list.unshift(b.ship);
+ return`<label>${esc(t.ship)}</label><select data-w="_bship"><option value="" ${b.ship?"":"selected"}>${esc(t.anyShip)}</option>`+(cur?`<option value="${esc(cur)}">★ ${esc(t.curShip)} : ${esc(pretty(cur))}</option>`:"")+list.map(x=>`<option value="${esc(x)}" ${b.ship&&x.toLowerCase()===b.ship.toLowerCase()?"selected":""}>${esc(pretty(x))}</option>`).join("")+`</select>`}
+function build(){els={};if(!grid){grid=GridStack.init({column:12,cellHeight:62,margin:5,float:true,staticGrid:true,animate:false,columnOpts:{breakpointForWindow:true,breakpoints:[{w:700,c:1}]}},$("grid"));
+ grid.on("change",(e,items)=>{if(!edit||building)return;for(const it of items){const w=tab().widgets.find(x=>x.id===it.id);if(w){w.x=it.x;w.y=it.y;w.w=it.w;w.h=it.h}}setDirty(true)})}
+ building=true;grid.removeAll(true);grid.setStatic(!edit);grid.batchUpdate();for(const w of tab().widgets){const el=grid.addWidget({id:w.id,x:w.x,y:w.y,w:w.w,h:w.h});els[w.id]=el;el.addEventListener("click",()=>{if(edit){sel=w.id;pane();mark()}})}grid.batchUpdate(false);building=false;
+ paint();chrome();mark()}
+function paint(){vals();for(const w of tab().widgets){const el=els[w.id];if(!el)continue;const c=el.querySelector(".grid-stack-item-content");if(!c)continue;
+ const h=body(w);if(c._h!==h){c.innerHTML=h;c._h=h}el.classList.toggle("na",!!(w.hide&&w.bind&&get(w.bind)===undefined)&&!edit)}
+ $("dot").className="dot"+(S&&S.connected?" on":"")}
+function mark(){for(const id in els)els[id].classList.toggle("sel",edit&&id===sel)}
+function chrome(){const t=T[L];document.documentElement.lang=L;$("t_title").textContent=t.title;$("t_back").textContent=t.back;$("lang").textContent=L==="fr"?"EN":"FR";
+ $("board").innerHTML=M.boards.map((b,i)=>`<option value="${i}" ${i===bi?"selected":""}>${esc(b.name)}${b.ship?" · "+esc(b.ship):""}</option>`).join("");
+ $("tabs").innerHTML=board().tabs.map((x,i)=>`<button data-tab="${i}" class="${i===ti?"cur":""}">${esc(x.name)}</button>`).join("");
+ $("editBtn").hidden=!isLocal;$("editBtn").textContent=edit?t.done:t.edit;$("saveBtn").hidden=!edit;$("revertBtn").hidden=!edit;$("saveBtn").textContent=t.save;$("revertBtn").textContent=t.revert;$("saveBtn").disabled=!dirty;
+ document.body.classList.toggle("edit",edit);if(edit)pane()}
+function setDirty(d){dirty=d;$("saveBtn").disabled=!d;$("msg").textContent=d?T[L].unsaved:""}
+function opt(k,lbl,v,attrs=""){return`<label>${esc(lbl)}</label><input data-w="${k}" value="${esc(v??"")}" ${attrs}>`}
+function pane(){const t=T[L],b=board(),tb=tab(),w=tb.widgets.find(x=>x.id===sel);let h=`<p class="help">${esc(t.help)}</p>`;
+ if(w){h+=`<h3>${esc(t.widget)}</h3><label>${esc(t.type)}</label><select data-w="type">${Object.keys(t.types).map(k=>`<option value="${k}" ${k===w.type?"selected":""}>${esc(t.types[k])}</option>`).join("")}</select>`+opt("label",t.label,w.label);
+  const bound=["value","bar","lamp","text"].includes(w.type);
+  if(bound){const x=w.bind?get(w.bind):undefined;h+=opt("bind",t.bind,w.bind,'list="fields" autocomplete="off"')+`<div class="help" id="nowv">${esc(t.now)}${esc(x===undefined?t.none:String(x))}</div>`}
+  if(w.type==="value")h+=opt("unit",t.unit,w.unit)+opt("scale",t.scale,w.scale??1,'type="number" step="any"')+opt("dec",t.dec,w.dec??0,'type="number" min="0" max="4"');
+  if(w.type==="bar")h+=opt("min",t.min,w.min??0,'type="number" step="any"')+opt("max",t.max,w.max??1,'type="number" step="any"');
+  if(w.type==="lamp")h+=`<label>${esc(t.op)}</label><select data-w="op">${["==","!=",">","<",">=","<="].map(o=>`<option ${o===(w.op||"==")?"selected":""}>${o}</option>`).join("")}</select>`+opt("value",t.val,w.value)+opt("textOn",t.textOn,w.textOn)+opt("colOn",t.colOn,w.colOn||"#3ddc84",'type="color"')+opt("colOff",t.colOff,w.colOff||"#3a4652",'type="color"')+`<label><input type="checkbox" data-w="blink" ${w.blink?"checked":""} style="width:auto"> ${esc(t.blink)}</label>`;
+  if(bound)h+=`<label><input type="checkbox" data-w="hide" ${w.hide?"checked":""} style="width:auto"> ${esc(t.hide)}</label>`;
+  h+=`<p class="help">${esc(t.applied)}</p><div class="row"><button class="del" data-act="delw">${esc(t.remove)}</button></div>`}
+ h+=`<h3>${esc(t.add)}</h3><div class="pal">${Object.keys(t.types).map(k=>`<button data-add="${k}">${esc(t.types[k])}</button>`).join("")}</div>`;
+ const ta=tb.auto||{};h+=`<h3>${esc(t.tab)}</h3>${opt("_tname",t.tname,tb.name)}<label>${esc(t.tauto)}</label><input data-w="_ta_bind" list="fields" autocomplete="off" value="${esc(ta.bind||"")}"><div class="row"><select data-w="_ta_op" style="width:70px">${["==","!=",">","<",">=","<="].map(o=>`<option ${o===(ta.op||"==")?"selected":""}>${o}</option>`).join("")}</select><input data-w="_ta_val" style="flex:1;width:auto" value="${esc(ta.value??"")}" placeholder="NAVIGATION"></div><div class="help">${esc(t.tautoHelp)}${ta.bind?" · "+esc(t.now)+esc(String(get(ta.bind)??t.none)):""}</div><div class="row"><button data-act="addtab">${esc(t.addTab)}</button><button data-act="tl">${t.left}</button><button data-act="tr">${t.right}</button><button class="del" data-act="deltab">${esc(t.delTab)}</button></div>`;
+ h+=`<h3>${esc(t.board)}</h3>${opt("_bname",t.bname,b.name)}${shipSelect(b)}<label><input type="checkbox" data-w="_auto" ${M.auto?"checked":""} style="width:auto"> ${esc(t.auto)}</label>
+ <div class="row"><button data-act="newship">${esc(t.newShip)}</button><button data-act="dup">${esc(t.dup)}</button><button class="del" data-act="delb">${esc(t.delBoard)}</button></div>
+ <div class="row"><button data-act="exp">${esc(t.exp)}</button><button data-act="imp">${esc(t.imp)}</button><button class="del" data-act="reset">${esc(t.reset)}</button></div>`;
+ const f=document.activeElement,fk=f&&f.closest&&f.closest("#pane")&&f.dataset.w,pos=f&&f.selectionStart;$("pane").innerHTML=h;if(fk){const e=$("pane").querySelector(`[data-w="${fk}"]`);if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(x){}}}}
+const uid=()=>"w"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+$("pane").addEventListener("input",e=>{const k=e.target.dataset.w;if(!k)return;const v=e.target.type==="checkbox"?e.target.checked:e.target.value;
+ if(k.startsWith("_ta_")){const a=tab().auto=tab().auto||{op:"=="};a[{_ta_bind:"bind",_ta_op:"op",_ta_val:"value"}[k]]=k==="_ta_bind"?v.trim():v;if(!a.bind)delete tab().auto}else if(k==="_tname")tab().name=v;else if(k==="_bname")board().name=v;else if(k==="_bship")board().ship=v.trim();else if(k==="_auto")M.auto=v;
+ else{const w=tab().widgets.find(x=>x.id===sel);if(!w)return;w[k]=["scale","dec","min","max"].includes(k)?(v===""?undefined:Number(v)):v;if(k==="type"&&w.type==="lamp"&&!w.op)Object.assign(w,{op:"==",value:"1"})}
+ setDirty(true);paint();if(k==="bind"){const x=get(v),n=$("nowv");if(n)n.textContent=T[L].now+(x===undefined?T[L].none:String(x))}if(k==="type"||k==="_bname"||k==="_bship"||k==="_tname")chrome()});
+$("pane").addEventListener("click",e=>{const d=e.target.dataset,t=T[L];if(d.add){const big=["ann","power","mission","notif"].includes(d.add);const bottom=tab().widgets.reduce((m,x)=>Math.max(m,x.y+x.h),0);const w={id:uid(),type:d.add,x:0,y:bottom,w:big?6:2,h:big&&d.add!=="power"?2:1,label:t.types[d.add]};
+  if(["value","bar","lamp","text"].includes(d.add))w.bind="";if(d.add==="lamp")Object.assign(w,{op:"==",value:"1"});tab().widgets.push(w);sel=w.id;setDirty(true);build();const el=els[w.id];if(el)el.scrollIntoView({block:"center",behavior:"smooth"});return}
+ const a=d.act;if(!a)return;const B=M.boards,b=board();
+ if(a==="delw"){b.tabs[ti].widgets=tab().widgets.filter(x=>x.id!==sel);sel=null}
+ else if(a==="addtab"){b.tabs.push({name:t.tab+" "+(b.tabs.length+1),widgets:[]});ti=b.tabs.length-1}
+ else if(a==="deltab"){if(b.tabs.length<2||!confirm(t.confirmDel))return;b.tabs.splice(ti,1);ti=0}
+ else if(a==="tl"&&ti>0){[b.tabs[ti-1],b.tabs[ti]]=[b.tabs[ti],b.tabs[ti-1]];ti--}
+ else if(a==="tr"&&ti<b.tabs.length-1){[b.tabs[ti+1],b.tabs[ti]]=[b.tabs[ti],b.tabs[ti+1]];ti++}
+ else if(a==="newship"||a==="dup"){const ship=V.class_name;if(a==="newship"&&!ship){alert(t.noShip);return}const c=JSON.parse(JSON.stringify(b));c.id="b"+Date.now().toString(36);if(a==="newship"){c.ship=ship;c.name=ship.replace(/_/g," ")}else c.name+=" (2)";B.push(c);bi=B.length-1;ti=0}
+ else if(a==="delb"){if(B.length<2||!confirm(t.confirmDel))return;B.splice(bi,1);bi=0;ti=0}
+ else if(a==="exp"){const u=URL.createObjectURL(new Blob([JSON.stringify(M,null,1)],{type:"application/json"}));const l=document.createElement("a");l.href=u;l.download="sctl-tableaux.json";l.click();URL.revokeObjectURL(u);return}
+ else if(a==="imp"){const i=document.createElement("input");i.type="file";i.accept=".json,application/json";i.onchange=async()=>{try{const m=JSON.parse(await i.files[0].text());if(!Array.isArray(m.boards)||!m.boards.length)throw 0;M=m;bi=0;ti=0;sel=null;setDirty(true);build()}catch(x){alert("JSON ?")}};i.click();return}
+ else if(a==="reset"){if(!confirm(t.confirmReset))return;M=defaults();bi=0;ti=0;sel=null}
+ else return;setDirty(true);build()});
+$("tabs").onclick=e=>{const i=e.target.dataset.tab;if(i===undefined)return;ti=+i;sel=null;build()};
+$("board").onchange=e=>{bi=+e.target.value;ti=0;sel=null;manual=true;build()};
+$("editBtn").onclick=()=>{edit=!edit;sel=null;if(edit)loadFields();build()};
+$("saveBtn").onclick=async()=>{const r=await fetch("/dash",{method:"POST",headers:{"X-SCTL":"1","Content-Type":"application/json"},body:JSON.stringify(M)});if(r.ok){setDirty(false);$("msg").textContent=T[L].saved}else $("msg").textContent=await r.text()};
+$("revertBtn").onclick=async()=>{await load();setDirty(false);sel=null;build()};
+$("lang").onclick=()=>{L=L==="fr"?"en":"fr";try{localStorage.setItem("sctl-lang",L)}catch(e){}chrome();for(const id in els){const c=els[id].querySelector(".grid-stack-item-content");if(c)c._h=null}paint()};
+async function loadFields(){try{const j=await (await fetch("/fields")).json();F=j.values||{};const keys=new Set([...Object.keys(F),...(j.schema||[]),"seated"]);vals();Object.keys(V).forEach(k=>keys.add(k));const html=[...keys].sort().map(k=>`<option value="${esc(k)}">`).join("");if($("fields")._h!==html){$("fields").innerHTML=html;$("fields")._h=html}}catch(e){}}
+async function load(){let m=null;try{m=await (await fetch("/dash")).json()}catch(e){}M=m&&Array.isArray(m.boards)&&m.boards.length?m:defaults();bi=Math.min(bi,M.boards.length-1);ti=0}
+window.onbeforeunload=e=>{if(dirty){e.preventDefault();e.returnValue=""}};
+(async()=>{await load();await loadFields();try{SHIPS=await (await fetch("/ships")).json()||[]}catch(e){}build();const es=new EventSource("/events");es.onmessage=e=>{try{S=JSON.parse(e.data);vals();pickBoard();pickTab();paint()}catch(x){}};es.onerror=()=>{S=null;paint()};setInterval(()=>{if(edit)loadFields()},5000)})();
+</script></body></html>

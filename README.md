@@ -49,6 +49,13 @@ et tous les champs de la télémétrie sous leur nom d'origine (`lights_enabled`
   instance à la fois ; relancer l'exe réveille celle qui attend. Journal : `%APPDATA%\SCTelemetryLocal\autostart.log`.
 - Page `/leds.html` : règles par LED VKB (première règle vraie = mode + couleur), conditions sur les noms d'origine
   de la télémétrie (`seated`, `flight.state.gear == DEPLOYED`…), identification d'une LED, réglage d'origine.
+## Tableau personnalisé
+
+Page `/custom.html` (bouton « 🧩 ») : grille [gridstack](https://gridstackjs.com) 14.1.0 (MIT, embarquée dans `web/vendor/gridstack`),
+widgets reliés aux noms d'origine de la télémétrie (liste tirée du schéma du jeu, `/fields`), un tableau par vaisseau
+(liste des vaisseaux lue dans `Data.p4k`, `/ships` ; un tableau vaut aussi pour les variantes), onglets à affichage
+automatique sur condition, export/import JSON. Enregistré dans `%APPDATA%\SCTelemetryLocal\dashboards.json`.
+Idée inspirée de [Hardpoint](https://github.com/SpyIncognito/cic-hardpoint) (Apache-2.0) ; aucun code repris.
 ## Compiler
 
 Go 1.22 ou plus récent, sous Windows :
@@ -76,3 +83,5 @@ Personal project, not affiliated with Cloud Imperium Games. Star Citizen® is a 
 Virpil: optional bridge to VPC Link Tool (pretends to be the DCS script, JSON over UDP 127.0.0.1:4123, original telemetry field names and DCS keys).
 VKB LEDs (optional, off by default, "💡 LED" button): Gladiator grip bar = master mode / hit / missile, blue LED = decoupled;
 S-TECS bars = shields, gear, quantum, ON = power plant. Nothing is stored in the device; unplug/replug to restore its LEDs.
+
+Custom boards (🧩): gridstack grid, widgets bound to telemetry names, one board per ship, auto-switching tabs, export/import.

@@ -104,6 +104,7 @@ func (a *app) serve(addr string) error {
 	a.firewallHandler(mux)
 	a.vkbHandler(mux)
 	autostartHandler(mux)
+	a.dashHandler(mux)
 	go a.runVKB()
 	a.vpcHandler(mux)
 	go a.runVPC()

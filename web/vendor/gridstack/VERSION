@@ -1,0 +1,5 @@
+gridstack 14.1.0 (npm, https://cdn.jsdelivr.net/npm/gridstack@14.1.0/), files copied unchanged from dist/ and LICENSE (MIT).
+sha256:
+e12690e8e671d752c8007993967830e6a4b8bcfb2787ac85d1100dff765460b4  gridstack-all.js
+74efc82159c5e8d28cb2cebd9f912be9d728bb07fa83896a6b62f4a843207126  gridstack.min.css
+28d28a6e0b5c6ebca8759b162a644c31cea28aab591060c0d95c7737d8456764  LICENSE

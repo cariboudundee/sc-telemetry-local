@@ -43,7 +43,7 @@ modes:{off:"off",on:"solid",slow:"slow blink",fast:"fast blink",ultra:"very fast
 confirmReset:"Replace your rules with the defaults?",identOff:"Enable the indicators first (checkbox at the top).",now:"now: ",absent:"missing"}};
 let L="fr";try{L=localStorage.getItem("sctl-lang")||(navigator.language.startsWith("fr")?"fr":"en")}catch(e){}
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let LEDS=null,VALS={},NAMES={},DEVS=[],ON=false,dirty=false;
+let SCH=[],LEDS=null,VALS={},NAMES={},DEVS=[],ON=false,dirty=false;
 const short=n=>String(n||"").replace(/^[A-Z0-9_]*?_(STATE|MODE|ROLE|TYPE)_/,"");
 function match(c){const x=VALS[c.arg];if(x===undefined)return false;const w=String(c.value||"").trim();const f=parseFloat(w);
  if(w!==""&&!isNaN(f)&&/^-?[\d.]+$/.test(w)){const v=Number(x);switch(c.op){case"!=":return v!=f;case">":return v>f;case"<":return v<f;case">=":return v>=f;case"<=":return v<=f}return v==f}
@@ -69,7 +69,7 @@ function render(){const t=T[L];document.documentElement.lang=L;$("t_title").text
  h+=`<div><button id="addled">${esc(t.addLed)}</button></div><datalist id="devlist">${DEVS.map(d=>`<option value="${esc(d)}">`).join("")}</datalist>`;
  const foc=document.activeElement,fk=foc&&foc.dataset?JSON.stringify(foc.dataset):null,sel=foc&&foc.selectionStart;
  $("main").innerHTML=h;if(fk){const el=[...document.querySelectorAll("#main input,#main select")].find(e=>JSON.stringify(e.dataset)===fk);if(el){el.focus();try{el.setSelectionRange(sel,sel)}catch(e){}}}
- $("args").innerHTML=Object.keys(VALS).sort().map(k=>`<option value="${esc(k)}">`).join("");
+ const ah=[...new Set([...Object.keys(VALS),...SCH])].sort().map(k=>`<option value="${esc(k)}">`).join("");if($("args")._h!==ah){$("args").innerHTML=ah;$("args")._h=ah}
  $("sw").onchange=async e=>{await fetch("/vkb?on="+(e.target.checked?1:0),{method:"POST",headers:{"X-SCTL":"1"}});ON=e.target.checked}}
 const P=s=>s.split(",").map(Number);
 $("main").addEventListener("input",e=>{const d=e.target.dataset;if(d.l){const l=LEDS[+d.l];l[d.f]=d.f==="led"?Math.max(0,Math.min(63,parseInt(e.target.value)||0)):e.target.value}
@@ -89,7 +89,7 @@ $("main").addEventListener("click",async e=>{const d=e.target.dataset;let ch=tru
 $("save").onclick=async()=>{const r=await fetch("/vkb/rules",{method:"POST",headers:{"X-SCTL":"1","Content-Type":"application/json"},body:JSON.stringify(LEDS)});if(r.ok){setDirty(false);$("msg").textContent=T[L].saved;load(true)}else $("msg").textContent=await r.text()};
 $("reset").onclick=async()=>{if(!confirm(T[L].confirmReset))return;await fetch("/vkb/rules?reset=1",{method:"POST",headers:{"X-SCTL":"1"}});setDirty(false);load(true)};
 $("lang").onclick=()=>{L=L==="fr"?"en":"fr";try{localStorage.setItem("sctl-lang",L)}catch(e){}render()};
-async function load(full){try{const j=await (await fetch("/vkb/rules")).json(),v=await (await fetch("/vkb")).json();VALS=j.values||{};NAMES=j.names||{};DEVS=j.devices||[];ON=v.on;if(full||!LEDS)LEDS=j.leds||[];
+async function load(full){try{if(!SCH.length){try{SCH=(await (await fetch("/fields")).json()).schema||[]}catch(x){}}const j=await (await fetch("/vkb/rules")).json(),v=await (await fetch("/vkb")).json();VALS=j.values||{};NAMES=j.names||{};DEVS=j.devices||[];ON=v.on;if(full||!LEDS)LEDS=j.leds||[];
  const foc=document.activeElement;if(!(foc&&(foc.tagName==="SELECT"||foc.tagName==="INPUT")&&foc.closest("#main")))render()}catch(e){}}
 window.onbeforeunload=e=>{if(dirty){e.preventDefault();e.returnValue=""}};
 load(true);setInterval(()=>load(false),1000);render();
